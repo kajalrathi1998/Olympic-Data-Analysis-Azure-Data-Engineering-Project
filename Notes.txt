@@ -1,0 +1,43 @@
+first step:
+
+create adf and adls resources in same resource grp
+
+then create a config file for metadriven pipeline in which copy all the git urls from where the data should be taken
+and upload this config csv to adls config container
+
+and also create another container landingzone to save all the files read from git
+
+next create linked services with http and adls on adf
+
+for http:
+baseurl: @{linkedService().url}
+create a parameter url
+
+for adls:
+use same subscription it will automatically shows
+
+next create dataset:
+http_ds in this use http linked service 
+create adls_source_ds using adls linked service (select path to config)
+and create adls_sink_ds using adls likned service (select path to landing)
+
+
+create a datadriven pipeline
+activity lookup:
+under setting:
+adls_source_ds and wildcard file path
+
+activity foreach:
+under settings:
+@activity('Lookup1').output.value
+under activities:
+copy data 
+
+activity copydata:
+source: http_ds, open create a parameter url_name and in connection give value as @dataset().url_name and then in pipeline item().url
+sink: adls_sink_ds, open, create a parameter url_name and in connection under filepath -> @last(split(dataset().url_name,'/'))
+and in pipeline @item().url
+
+validate -> publish -> debug
+and check adls landing if file came or not
+
