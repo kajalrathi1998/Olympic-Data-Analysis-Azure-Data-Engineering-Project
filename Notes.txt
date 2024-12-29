@@ -41,3 +41,40 @@ and in pipeline @item().url
 validate -> publish -> debug
 and check adls landing if file came or not
 
+
+after each and every file landed to landinzone of adls
+next we have to createdatabricks to do transformations
+
+steps:
+firstly create key vault give the permission so that you can create secret, copy secret key from adls and create a secret in keyvault to make connection between adls and databricks
+
+create databricks resource and then create compute, create a workspace, now its time to create key vault scope copy url of databricks workspace upto .net
+i.e.  https://<databricks-instance>#secrets/createScope
+
+create a scope 
+
+code to be followed:
+
+storageAccountName = "adlsolympickajal"
+storageAccountAccessKey = dbutils.secrets.get('key-vault-scope', 'adlssecretupdated')
+
+mountPoint = "landingzone"  # Specify the mount point you want to mount
+
+if not any(mount.mountPoint == f"/mnt/{mountPoint}" for mount in dbutils.fs.mounts()):
+    try:
+        dbutils.fs.mount(
+            source=f"wasbs://{mountPoint}@{storageAccountName}.blob.core.windows.net",
+            mount_point=f"/mnt/{mountPoint}",
+            extra_configs={
+                f'fs.azure.account.key.{storageAccountName}.blob.core.windows.net': storageAccountAccessKey
+            }
+        )
+        print(f"{mountPoint} mount succeeded!")
+    except Exception as e:
+        print(f"Mounting {mountPoint} failed with exception:", e)
+else:
+    print(f"{mountPoint} is already mounted.")
+
+you will get an access denied error
+go to key vault -> Iam role -> give secret user role to AzureDatabricks app which is already present
+and after that you will be able to access adls landingzone in databricks now you can do transformations
